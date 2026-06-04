@@ -1,0 +1,12 @@
+# 대용량 데이터셋 폴더 제외
+parsed_medical_sample.csv
+dataset/
+*.csv
+*.json
+
+# 모델 학습 결과 및 가중치 폴더 제외
+results/
+best_baseline_model/
+*.pt
+*.bin
+*.safetensors
