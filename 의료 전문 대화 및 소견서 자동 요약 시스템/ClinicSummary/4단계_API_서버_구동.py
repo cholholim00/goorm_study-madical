@@ -47,6 +47,17 @@ class DialogueRequest(BaseModel):
 
 class SummaryResponse(BaseModel):
     summary: str
+    
+# 대시보드 웹 페이지 연동 서빙 라우터
+@app.get("/dashboard", response_class=HTMLResponse)
+def read_dashboard():
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    template_path = os.path.join(BASE_DIR, "templates", "dashboard.html")
+    try:
+        with open(template_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read(), status_code=200)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="dashboard.html 파일을 templates 폴더에서 찾을 수 없습니다.")
 
 @app.get("/")
 def health_check():

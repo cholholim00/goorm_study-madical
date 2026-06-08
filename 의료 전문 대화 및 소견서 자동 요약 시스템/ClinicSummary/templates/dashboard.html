@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>의료 소견서 요약 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+
+    <nav class="border-b border-slate-800 bg-slate-950/50 backdrop-blur px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                <i class="fa-solid class fa-wave-square text-xl animate-pulse"></i>
+            </div>
+            <span class="text-xl font-bold tracking-wider bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">BridgeBoard AI</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="flex items-center gap-2 text-sm bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/20">
+                <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span> Engine Active (CUDA)
+            </span>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-2xl p-6 flex flex-col gap-4 shadow-xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h2 class="text-lg font-semibold flex items-center gap-2 text-indigo-400">
+                    <i class="fa-solid fa-notes-medical"></i> 진료 멀티세션 스크립트 입력
+                </h2>
+                <button onclick="insertSample()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded transition">
+                    샘플 데이터 주입
+                </button>
+            </div>
+            
+            <textarea id="dialogueInput" 
+                class="w-full h-[400px] bg-slate-900/50 border border-slate-800 rounded-xl p-4 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition resize-none leading-relaxed"
+                placeholder="의사와 환자 간의 대화 스크립트나 녹취록 텍스트를 입력하세요..."></textarea>
+            
+            <button onclick="requestSummary()" id="submitBtn"
+                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.99]">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> 생성형 소견서 요약 가동
+            </button>
+        </div>
+
+        <div class="flex flex-col gap-6">
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl flex-1 flex flex-col min-h-[300px]">
+                <h2 class="text-lg font-semibold flex items-center gap-2 text-cyan-400 border-b border-slate-800 pb-3 mb-4">
+                    <i class="fa-solid fa-laptop-medical"></i> AI 압축 소견서
+                </h2>
+                <div id="loading" class="hidden flex-1 flex-col items-center justify-center gap-3 text-slate-400">
+                    <i class="fa-solid fa-circle-notch text-3xl text-indigo-500 animate-spin"></i>
+                    <p class="text-sm animate-pulse">KoBART 모델 추론 연산 중...</p>
+                </div>
+                <div id="summaryResult" class="flex-1 text-slate-300 leading-relaxed whitespace-pre-wrap select-all">
+                    <p class="text-slate-500 text-center my-auto italic">좌측에 스크립트를 입력하고 요약 버튼을 누르면 AI 분석 결과가 여기에 출력됩니다.</p>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Model Specifications</h3>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                        <span class="text-slate-500 block mb-1">Architecture</span>
+                        <span class="text-slate-200 font-medium font-mono">KoBART-v2</span>
+                    </div>
+                    <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                        <span class="text-slate-500 block mb-1">Train Data Size</span>
+                        <span class="text-slate-200 font-medium font-mono">36,044 Sessions</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function insertSample() {
+            document.getElementById('dialogueInput').value = "안녕하세요 의사 선생님. 제가 며칠 전부터 아랫배가 쿡쿡 쑤시고 생리 주기가 아닌데도 부정출혈이 조금씩 나와서 너무 걱정돼서 왔어요. 통증은 밤에 특히 심해지는 것 같습니다. 의사 소견으로는 자궁 초음파 검사를 진행해서 정밀하게 상태를 확인해 볼 필요가 있겠습니다. 또한 검사 결과가 나오기 전까지는 무리한 운동을 피하고 처방해 드리는 진통 소염제를 복용하면서 안정을 취하셔야 합니다. 일주일 뒤에 검사 결과 보러 다시 내원하세요.";
+        }
+
+        async function requestSummary() {
+            const inputField = document.getElementById('dialogueInput');
+            const resultField = document.getElementById('summaryResult');
+            const loadingField = document.getElementById('loading');
+            const btn = document.getElementById('submitBtn');
+
+            if (!inputField.value.trim()) {
+                alert("의료 대화 내용을 입력해 주세요.");
+                return;
+            }
+
+            // UI 상태를 로딩 중으로 전환
+            resultField.innerHTML = '';
+            loadingField.classList.remove('hidden');
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            try {
+                // 4단계 FastAPI 서버에 비동기 POST 요청 전송
+                const response = await fetch('/api/summarize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: inputField.value })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // 결과 텍스트 바인딩 및 하이라이트 효과
+                    resultField.innerHTML = `<p class="p-4 bg-indigo-950/20 border border-indigo-500/20 rounded-xl text-indigo-200 shadow-inner">👉 ${data.summary}</p>`;
+                } else {
+                    resultField.innerHTML = `<p class="text-rose-400 bg-rose-950/20 p-4 border border-rose-500/20 rounded-xl">❌ 에러: ${data.detail || '요약 실패'}</p>`;
+                }
+            } catch (error) {
+                resultField.innerHTML = `<p class="text-rose-400 bg-rose-950/20 p-4 border border-rose-500/20 rounded-xl">❌ 네트워크 오류: API 서버가 켜져 있는지 확인하세요.</p>`;
+            } finally {
+                loadingField.classList.add('hidden');
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+    </script>
+</body>
+</html>
