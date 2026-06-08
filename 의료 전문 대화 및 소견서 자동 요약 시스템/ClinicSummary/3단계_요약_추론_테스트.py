@@ -41,12 +41,13 @@ def test_inference():
     with torch.no_grad():
         summary_ids = model.generate(
             inputs["input_ids"],
-            num_beams=5,                # 빔 서치(Beam Search) 갯수 세팅 (정밀도 향상)
-            max_length=64,              # 요약문 최대 길이 저지선
-            min_length=10,              # 지나치게 짧은 문장 방지 최소 길이
-            repetition_penalty=2.5,     # 동일한 단어/문구 반복 생성 에러 패널티 부여
-            no_repeat_ngram_size=3,     # 3개 이상 연속된 토큰 반복 차단
-            early_stopping=True         # 문장 완성 기호(EOS) 감지 시 즉시 연산 종료
+            num_beams=5,                
+            max_length=40,              # 🚨 최대 길이를 더 타이트하게 조여서 강제 압축 유도
+            min_length=15,              
+            repetition_penalty=3.5,     # 🚨 패널티를 2.5 -> 3.5로 대폭 상향하여 본문 똑같이 베끼기 차단
+            no_repeat_ngram_size=2,     # 🚨 2개 단어 연속 반복 절대 금지 (복사 차단 핵심)
+            length_penalty=0.6,         # 🚨 짧고 명확한 문장을 선호하도록 피드백 가중치 부여 (소수점일 때 짧아짐)
+            early_stopping=True         
         )
 
     # 5. 디코더 출력을 다시 인간의 언어로 디코딩
