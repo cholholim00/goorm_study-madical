@@ -64,18 +64,20 @@ def train_kobart_summarization():
     # 6. 학습 하이퍼파라미터 지정 (Portable_GPU 환경에 맞춤 튜닝)
     training_args = Seq2SeqTrainingArguments(
         output_dir="./results",
-        num_train_epochs=10,                # 테스트 및 빠른 수렴을 위해 10 에포크 지정
-        per_device_train_batch_size=2,      # OOM 방지를 위한 안정적인 배치 사이즈
-        per_device_eval_batch_size=2,
-        warmup_steps=50,
+        num_train_epochs=3,                 # 🚨 [대용량 패치] 데이터가 많으므로 10 -> 3 Epoch로도 충분히 수렴합니다.
+        per_device_train_batch_size=4,      # 🚨 [VRAM 최적화] 배치 사이즈를 2 -> 4로 올려 가속도 맥스업 (OOM 나면 2로 원복)
+        per_device_eval_batch_size=4,
+        warmup_steps=300,                   # 데이터 스케일에 맞춘 웜업 스텝 상향
         weight_decay=0.01,
         logging_dir="./logs",
-        logging_steps=1,
-        evaluation_strategy="epoch",        # 매 에포크 끝날 때마다 검증 진행
-        save_strategy="epoch",
+        logging_steps=10,                   # 10스텝마다 가볍게 로깅
+        evaluation_strategy="steps",        # 🚨 [조기 검증] 에포크가 너무 기니까 500스텝마다 검증 진행
+        eval_steps=500,
+        save_steps=500,
+        save_total_limit=2,                 # 하드디스크 용량 보존을 위해 체크포인트는 최대 2개만 유지
         load_best_model_at_end=True,
-        predict_with_generate=True,         # 검증 시 실제 문장을 생성하도록 트리거
-        fp16=torch.cuda.is_available(),     # 🚀 NVIDIA GPU 가속 엔진 (FP16 반정밀도 연산 패치)
+        predict_with_generate=True,         
+        fp16=torch.cuda.is_available(),     # RTX 4060 Ti 텐서코어 가속 ON
         report_to="none"
     )
     
