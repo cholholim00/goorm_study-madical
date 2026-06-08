@@ -1,80 +1,83 @@
 import os
 import json
+import glob
 import pandas as pd
+from tqdm import tqdm
 
 def parse_single_json(file_path):
-    """
-    AI Hub 전문분야 멀티세션의 실제 내부 Key 구조인 
-    [dialog -> utterance]와 [sessionSummary -> apprentice/wizard]를 정밀 추출합니다.
-    """
-    if not os.path.exists(file_path):
-        print(f"❌ 파일을 찾을 수 없습니다: {file_path}")
-        return None
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    
-    # 1. sessionInfo 레이어 진입 (실제 모든 노드가 여기에 집중되어 있음)
-    session_info = data.get("sessionInfo", {})
-    if isinstance(session_info, list) and len(session_info) > 0:
-        session_info = session_info[0]
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
         
-    if not isinstance(session_info, dict):
-        print(f"⚠️ {file_path} 내부 sessionInfo 구조가 올바르지 않습니다.")
-        return None
-
-    # 2. 💬 대화 본문 스크립트 추출 (dialog -> utterance 탐색)
-    dialog_list = session_info.get("dialog", [])
-    full_text = " ".join([
-        d.get("utterance", "").strip() 
-        for d in dialog_list 
-        if isinstance(d, dict) and d.get("utterance")
-    ])
-    
-    # 3. 📝 요약문 추출 (sessionSummary -> apprentice & wizard 병합)
-    session_summary = session_info.get("sessionSummary", {})
-    summary_sentences = []
-    
-    if isinstance(session_summary, dict):
-        # apprentice(초보자/환자 측면) 요약 라인 확보
-        apprentice_list = session_summary.get("apprentice", [])
-        if isinstance(apprentice_list, list):
-            summary_sentences.extend([s.strip() for s in apprentice_list if s])
+        session_info = data.get("sessionInfo", {})
+        if isinstance(session_info, list) and len(session_info) > 0:
+            session_info = session_info[0]
             
-        # wizard(전문가/의사 측면) 요약 라인 확보
-        wizard_list = session_summary.get("wizard", [])
-        if isinstance(wizard_list, list):
-            summary_sentences.extend([s.strip() for s in wizard_list if s])
-            
-    full_summary = " ".join(summary_sentences)
+        if not isinstance(session_info, dict):
+            return None
 
-    # 데이터가 둘 다 성공적으로 확보되었을 때만 데이터셋 생성
-    if full_text and full_summary:
-        return {"text": full_text, "summary": full_summary}
-    else:
-        print(f"⚠️ {file_path} 파싱 실패 - 대화 길이: {len(full_text)}자 / 요약문 길이: {len(full_summary)}자")
+        # 1. 대화 본문 스크립트 추출 (dialog -> utterance)
+        dialog_list = session_info.get("dialog", [])
+        full_text = " ".join([
+            d.get("utterance", "").strip() 
+            for d in dialog_list 
+            if isinstance(d, dict) and d.get("utterance")
+        ])
+        
+        # 2. 요약문 추출 (sessionSummary -> apprentice & wizard)
+        session_summary = session_info.get("sessionSummary", {})
+        summary_sentences = []
+        
+        if isinstance(session_summary, dict):
+            apprentice_list = session_summary.get("apprentice", [])
+            if isinstance(apprentice_list, list):
+                summary_sentences.extend([s.strip() for s in apprentice_list if s])
+                
+            wizard_list = session_summary.get("wizard", [])
+            if isinstance(wizard_list, list):
+                summary_sentences.extend([s.strip() for s in wizard_list if s])
+                
+        full_summary = " ".join(summary_sentences)
+
+        if full_text and full_summary:
+            return {"text": full_text, "summary": full_summary}
+    except Exception:
         return None
+    return None
 
 if __name__ == "__main__":
-    # 데이터 폴더 정의 및 결과 저장 경로
-    TRAIN_JSON = "./data/train_data.json"
-    VALID_JSON = "./data/valid_data.json"
-    OUTPUT_DIR = "./data"
+    # 🎯 현재 내 프로젝트 내부의 data/ 폴더만 다이렉트 저격
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DATA_DIR = os.path.join(BASE_DIR, "data")
     
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    print(f"📡 [직접 조준] 현재 수동 배치 타겟 폴더: {DATA_DIR}")
     
-    # A. 훈련 데이터 파싱 및 CSV 변환
-    print("⏳ [Train] 구조 저격 정제 엔진 가동...")
-    train_result = parse_single_json(TRAIN_JSON)
-    if train_result:
-        train_df = pd.DataFrame([train_result])
-        train_df.to_csv(os.path.join(OUTPUT_DIR, "summary_train.csv"), index=False, encoding="utf-8-sig")
-        print("✅ 훈련용 [summary_train.csv] 셋 빌드 성공!")
-        
-    # B. 검증 데이터 파싱 및 CSV 변환
-    print("\n⏳ [Valid] 구조 저격 정제 엔진 가동...")
-    valid_result = parse_single_json(VALID_JSON)
-    if valid_result:
-        valid_df = pd.DataFrame([valid_result])
-        valid_df.to_csv(os.path.join(OUTPUT_DIR, "summary_valid.csv"), index=False, encoding="utf-8-sig")
-        print("✅ 검증용 [summary_valid.csv] 셋 빌드 성공!")
+    # data/ 폴더 내부에 직접 흩뿌려진 모든 JSON 파일들을 긁어모음
+    all_json_files = glob.glob(os.path.join(DATA_DIR, "*.json"))
+    print(f"📂 포착된 총 JSON 파일 개수: {len(all_json_files)}개")
+    
+    if len(all_json_files) == 0:
+        print("❌ 여전히 0개입니다! 파일 탐색기에서 ClinicSummary/data/ 폴더 안에 진짜로 .json 파일들을 복사해 넣었는지 다시 확인하세요.")
+    else:
+        # 데이터가 들어왔을 경우 절반은 Train, 절반은 Valid로 분할 처리하여 데이터 볼륨 생성
+        parsed_records = []
+        for file_path in tqdm(all_json_files, desc="임상 데이터 정제 중"):
+            res = parse_single_json(file_path)
+            if res:
+                parsed_records.append(res)
+                
+        if parsed_records:
+            # 8:2 비율로 분할하여 안정적인 벨런스 확보
+            split_idx = int(len(parsed_records) * 0.8)
+            train_records = parsed_records[:split_idx] if split_idx > 0 else parsed_records
+            valid_records = parsed_records[split_idx:] if split_idx > 0 else parsed_records
+            
+            # Train CSV 빌드
+            train_df = pd.DataFrame(train_records)
+            train_df.to_csv(os.path.join(DATA_DIR, "summary_train.csv"), index=False, encoding="utf-8-sig")
+            print(f"✅ 훈련용 [summary_train.csv] 생성 성공! (데이터: {len(train_df)}건)")
+            
+            # Valid CSV 빌드
+            valid_df = pd.DataFrame(valid_records)
+            valid_df.to_csv(os.path.join(DATA_DIR, "summary_valid.csv"), index=False, encoding="utf-8-sig")
+            print(f"✅ 검증용 [summary_valid.csv] 생성 성공! (데이터: {len(valid_df)}건)")
