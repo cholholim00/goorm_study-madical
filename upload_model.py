@@ -2,15 +2,17 @@ import os
 from huggingface_hub import HfApi
 
 # 1. 원본  고도화 모델 가중치 폴더 타겟팅
-local_model_path = "./Medical AI 통합 서빙 파이프라인/Backend/Phase1/model/best_baseline_model"
+local_model_path = "./의료 전문 대화 및 소견서 자동 요약 시스템/ClinicSummary/model/best_summary_model"
 
 if not os.path.exists(local_model_path):
     print(f"❌ [{local_model_path}] 폴더가 존재하지 않습니다. 경로를 확인하세요.")
     exit()
 
 # 2. 허깅페이스 계정 설정 (★본인의 허깅페이스 실제 ID로 변경 필수★)
-HF_USERNAME = "ghfla" 
-MODEL_NAME = "roberta-large-classification"
+# 본인의 Hugging Face '계정 아이디(Username)'
+HF_USERNAME = "ghfla"
+# Hugging Face 레포지토리에 등록될 멋진 모델 이름 지정
+MODEL_NAME = "kobart-v2-medical-summary"
 model_repo_id = f"{HF_USERNAME}/{MODEL_NAME}"
 
 api = HfApi()
