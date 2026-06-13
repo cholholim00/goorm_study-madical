@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model HealthRecord {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  datetime    DateTime
+  type        String // "blood_pressure" | "blood_sugar"
+  value1      Int // 혈당 or 수축기
+  value2      Int? // 이완기(혈압일 때)
+  pulse       Int?
+  state       String? // "morning" | "after_meal" | ...
+  sleepHours  Int?
+  exercise    Boolean?
+  stressLevel Int?
+  memo        String?
+
+  createdAt DateTime @default(now())
+}
+
+model UserProfile {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique // ✅ 이게 있어야 위에서 upsert(where: { userId })가 잘 동작
+  targetSys Int
+  targetDia Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AiCoachLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  createdAt DateTime @default(now())
+
+  // 어떤 종류의 코칭인지
+  // 예: "coach" (개인 코치), "lifestyle" (라이프스타일 인사이트)
+  type String
+
+  // 분석에 사용한 기간 (최근 7일, 14일, 30일 등)
+  rangeDays Int
+
+  // 사용자가 적은 메모 (AI 코치 /coach에서만 사용, lifestyle는 보통 null)
+  userNote String?
+
+  // 나중에 필요하면 구분용 (예: "dashboard", "mobile" 같은)
+  source String?
+
+  // 실제 AI가 응답한 텍스트 전체
+  aiMessage String
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
