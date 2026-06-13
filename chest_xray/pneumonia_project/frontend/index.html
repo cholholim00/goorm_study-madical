@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>폐렴 의사결정 지원 데모 (Fusion)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #1e3a8a, #020617);
+      color: #f9fafb;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 24px;
+      padding: 24px 28px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      max-width: 520px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+      color: #9ca3af;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      margin-top: 14px;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+    /* ▼ 점선/테두리 없는 업로드 영역 */
+    .dropzone {
+      border: none; /* 테두리/점선 제거 */
+      border-radius: 16px;
+      padding: 14px 16px;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      font-size: 0.85rem;
+      background: rgba(30, 64, 175, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .dropzone:hover {
+      background: rgba(37, 99, 235, 0.5);
+      transform: translateY(-1px);
+    }
+    .drop-main-text {
+      font-size: 0.85rem;
+      color: #e5e7eb;
+    }
+    .drop-sub-text {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+    .drop-btn {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #c4b5fd;
+      font-size: 0.75rem;
+      color: #e5e7eb;
+      background: rgba(15, 23, 42, 0.9);
+      white-space: nowrap;
+    }
+    input[type="file"] {
+      display: none; /* 기본 파일 버튼 숨김 */
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 10px;
+      margin-top: 8px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .field label {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+    .field input {
+      border-radius: 10px;
+      border: 1px solid #374151;
+      background: #020617;
+      padding: 6px 8px;
+      color: #f9fafb;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .field input:focus {
+      border-color: #6366f1;
+    }
+    .btn {
+      width: 100%;
+      margin-top: 14px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #4f46e5, #06b6d4);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.2s;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+    .btn:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.4);
+    }
+    .result {
+      margin-top: 18px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(15, 118, 110, 0.15);
+      border: 1px solid rgba(45, 212, 191, 0.4);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .result .label-main {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+    .risk-low { color: #22c55e; }
+    .risk-medium { color: #eab308; }
+    .risk-high { color: #f97316; }
+    .result-sub {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(55, 65, 81, 0.8);
+      font-size: 0.8rem;
+      color: #d1d5db;
+    }
+    .result-sub div {
+      margin-top: 2px;
+    }
+    .small {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+    .error {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: #f97316;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="title">폐렴 의사결정 지원 데모 (Fusion)</div>
+    <div class="subtitle">X-ray + 임상 데이터를 함께 분석해서 최종 위험도를 보여줍니다.</div>
+
+    <!-- 1. X-ray 업로드 (점선 X, 미리보기 X) -->
+    <div class="section-title">1. X-ray 이미지</div>
+    <label class="dropzone" id="dropzone">
+      <div>
+        <div class="drop-main-text" id="drop-text">X-ray 파일을 선택하거나 여기로 드래그하세요.</div>
+        <div class="drop-sub-text">JPEG, PNG 등 X-ray 이미지 한 장을 업로드합니다.</div>
+      </div>
+      <span class="drop-btn">파일 선택</span>
+      <input type="file" id="file-input" accept="image/*" />
+    </label>
+
+    <!-- 2. 임상 입력 -->
+    <div class="section-title">2. 임상 데이터 (예시 값 입력)</div>
+    <div class="grid">
+      <div class="field">
+        <label for="age">나이 (age)</label>
+        <input id="age" type="number" placeholder="예: 70" />
+      </div>
+      <div class="field">
+        <label for="temp">체온 ℃ (temp)</label>
+        <input id="temp" type="number" step="0.1" placeholder="예: 38.5" />
+      </div>
+      <div class="field">
+        <label for="resp_rate">호흡수 (/min)</label>
+        <input id="resp_rate" type="number" placeholder="예: 26" />
+      </div>
+      <div class="field">
+        <label for="spo2">SpO₂ (%)</label>
+        <input id="spo2" type="number" placeholder="예: 90" />
+      </div>
+      <div class="field">
+        <label for="wbc">WBC</label>
+        <input id="wbc" type="number" placeholder="예: 13000" />
+      </div>
+      <div class="field">
+        <label for="crp">CRP (mg/L)</label>
+        <input id="crp" type="number" step="0.1" placeholder="예: 12.3" />
+      </div>
+    </div>
+
+    <button class="btn" id="analyze-btn" disabled>Fusion 분석하기</button>
+
+    <div class="error" id="error" style="display:none;"></div>
+    <div class="result" id="result" style="display:none;"></div>
+
+    <div class="small">
+      ⚠️ 이 결과는 실제 진단이 아닌 <b>연구/교육용 데모</b>입니다. 최종 판단은 반드시 의료진이 직접 내려야 합니다.
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000/predict/fusion";
+
+    const fileInput = document.getElementById("file-input");
+    const dropzone = document.getElementById("dropzone");
+    const analyzeBtn = document.getElementById("analyze-btn");
+    const resultBox = document.getElementById("result");
+    const errorBox = document.getElementById("error");
+    const dropText = document.getElementById("drop-text");
+
+    const ageInput = document.getElementById("age");
+    const tempInput = document.getElementById("temp");
+    const respInput = document.getElementById("resp_rate");
+    const spo2Input = document.getElementById("spo2");
+    const wbcInput = document.getElementById("wbc");
+    const crpInput = document.getElementById("crp");
+
+    function updateAnalyzeButtonState() {
+      const fileOk = !!fileInput.files[0];
+      const ageOk = ageInput.value !== "";
+      const tempOk = tempInput.value !== "";
+      const respOk = respInput.value !== "";
+      const spo2Ok = spo2Input.value !== "";
+      const wbcOk = wbcInput.value !== "";
+      const crpOk = crpInput.value !== "";
+      analyzeBtn.disabled = !(fileOk && ageOk && tempOk && respOk && spo2Ok && wbcOk && crpOk);
+    }
+
+    function setFile(file) {
+      if (!file) return;
+      // 미리보기는 없애고 파일 이름만 표시
+      dropText.textContent = file.name;
+      updateAnalyzeButtonState();
+    }
+
+    dropzone.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      setFile(file);
+    });
+
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+    });
+
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      fileInput.files = e.dataTransfer.files;
+      setFile(file);
+    });
+
+    [ageInput, tempInput, respInput, spo2Input, wbcInput, crpInput].forEach((el) => {
+      el.addEventListener("input", updateAnalyzeButtonState);
+    });
+
+    analyzeBtn.addEventListener("click", async () => {
+      errorBox.style.display = "none";
+      resultBox.style.display = "none";
+
+      const file = fileInput.files[0];
+      if (!file) {
+        errorBox.textContent = "X-ray 이미지를 선택해주세요.";
+        errorBox.style.display = "block";
+        return;
+      }
+
+      const fields = {
+        age: ageInput.value,
+        temp: tempInput.value,
+        resp_rate: respInput.value,
+        spo2: spo2Input.value,
+        wbc: wbcInput.value,
+        crp: crpInput.value,
+      };
+
+      for (const [k, v] of Object.entries(fields)) {
+        if (v === "") {
+          errorBox.textContent = k + " 값을 입력해주세요.";
+          errorBox.style.display = "block";
+          return;
+        }
+      }
+
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = "분석 중...";
+
+      const formData = new FormData();
+      formData.append("file", file);
+      Object.entries(fields).forEach(([k, v]) => formData.append(k, v));
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (res.status !== 200) {
+          const msg = data.detail || "서버 오류가 발생했습니다.";
+          errorBox.textContent = msg;
+          errorBox.style.display = "block";
+          return;
+        }
+
+        const px = data.xray?.p_neumonia ?? 0;
+        const pc = data.clinical?.clinical_risk ?? 0;
+        const pf = data.fusion?.p_final ?? 0;
+
+        const riskFusion = data.fusion?.risk_level || "UNKNOWN";
+        let riskClass = "risk-low";
+        if (riskFusion === "MEDIUM") riskClass = "risk-medium";
+        if (riskFusion === "HIGH") riskClass = "risk-high";
+
+        const pxStr = (px * 100).toFixed(1);
+        const pcStr = (pc * 100).toFixed(1);
+        const pfStr = (pf * 100).toFixed(1);
+
+        const xLabel = data.xray?.label || "-";
+        const fusionMsg = data.fusion?.message || "";
+
+        resultBox.innerHTML = `
+          <div class="label-main">
+            통합 위험도: <span class="${riskClass}">${riskFusion}</span>
+          </div>
+          <div>최종 폐렴/고위험 확률 (Fusion): <b>${pfStr}%</b></div>
+          <div style="margin-top:4px; font-size:0.8rem; color:#9ca3af;">
+            ${fusionMsg}
+          </div>
+          <div class="result-sub">
+            <div><b>🫁 X-ray 모델</b> — P(neumonia): ${pxStr}% (${xLabel}, Risk: ${data.xray?.risk_level})</div>
+            <div><b>🧪 임상 모델</b> — Clinical risk: ${pcStr}% (Risk: ${data.clinical?.risk_level})</div>
+          </div>
+        `;
+        resultBox.style.display = "block";
+      } catch (err) {
+        console.error(err);
+        errorBox.textContent = "서버와 통신 중 오류가 발생했습니다.";
+        errorBox.style.display = "block";
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = "Fusion 분석하기";
+      }
+    });
+  </script>
+</body>
+</html>

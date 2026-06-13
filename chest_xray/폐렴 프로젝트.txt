@@ -1,0 +1,71 @@
+# 프로젝트 이동
+cd D:\medical_project
+
+# 가상환경 활성화
+conda activate medical
+
+# 필요한 라이브러리
+pip install tensorflow 
+python -c "import tensorflow as tf; print(tf.__version__)"
+pip install pillow scipy
+pip install scikit-learn fastapi uvicorn python-multipart
+
+# X-ray 이미지 분류 모델 학습용
+python train_xray.py
+
+# 예측 결과
+python predict_xray.py -i chest_xray\test\NORMAL\파일명.jpeg
+
+# X-ray 폐렴 분류 CNN 모델 가중치
+xray_mobilenetv2_best.h5
+
+# 분석 동작
+python evaluate_xray.py
+
+# FastAPI 백엔드: X-ray 예측 API
+python app.py
+
+# FastAPI 서버 켜기
+uvicorn app:app --reload
+
+# 임상 테스트 데이터 생성
+python generate_clinical_data.py
+
+# 임상 데이터 원본
+clinical_data.csv
+
+# X-ray + 임상 + 라벨
+fusion_data.csv
+
+# 임상 데이터 위험도 모델 학습
+python clinical_train.py
+
+# 임상 데이터 기반 위험도 모델 (scikit-learn)
+clinical_model.pkl
+
+# X-ray 모델 평가
+python eval_xray.py
+
+# 임상 모델 평가 
+python eval_clinical.py
+
+# Fusion 성능 평가 
+python eval_fusion.py
+
+# 임상 모델 Feature Importance 뽑기
+python clinical_feature_importance.py
+
+# X-ray Grad-CAM 스크립트 
+python grad_cam_xray.py
+
+# 폐렴 케이스 하나
+python grad_cam_xray.py chest_xray\test\NORMAL\IM-0001-0001.jpeg
+
+# 정상 케이스 하나
+python grad_cam_xray.py chest_xray\test\PNEUMONIA\person100_bacteria_475.jpeg
+
+# 예측 로그 관리용  DB
+python check_db.py
+
+# 로그 통계 뽑는 스크립트 + 리포트 파일 저장
+python logs_stats.py
